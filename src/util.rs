@@ -1,20 +1,17 @@
-use crate::manifest::decode_manifest;
+use crate::crypto::verify_signature;
+use crate::manifest::serialize_manifest_data;
+use crate::structs::Validator;
 use crate::time::get_timestamp;
-use crate::{
-    enums::Version,
-    structs::{DecodedBlob, Unl},
-};
+use crate::enums::Version;
 use anyhow::Result;
-use base64::{prelude::BASE64_STANDARD, Engine};
 use color_eyre::owo_colors::OwoColorize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use url::Url;
 
-pub fn generate_unl_file(content: &str) -> Result<()> {
-    let mut file = File::create(format!("index.json.{}", get_timestamp()))?;
+pub fn generate_vl_file(content: &str, version: u8) -> Result<()> {
+    let mut file = File::create(format!("generated_vl_v{}.json.{}", version, get_timestamp()))?;
     file.write_all(content.as_bytes())?;
     Ok(())
 }
@@ -42,35 +39,10 @@ pub fn hex_to_base58(hex_string: &str) -> Result<String> {
     Ok(base58_encode(payload_with_checksum))
 }
 
-pub fn decode_unl(unl: Unl) -> Result<Unl> {
-    let mut decoded_unl: Unl = unl.clone();
-    let decoded = BASE64_STANDARD.decode(&unl.blob).unwrap();
-    let mut decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
-    for validator in decoded_blob.validators.iter_mut() {
-        let manifest = decode_manifest(&validator.manifest).expect("Could not decode manifest");
-        validator.decoded_manifest = Some(manifest.clone());
-    }
-    decoded_unl.decoded_manifest = Some(decode_manifest(&unl.manifest)?);
-    decoded_unl.decoded_blob = Some(decoded_blob);
-    Ok(decoded_unl)
-}
-
 pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
-    let contents = fs::read_to_string(file_path).unwrap_or_else(|_| format!("No such file: {}", file_path));
+    let contents = fs::read_to_string(file_path)?;
     let lines: Vec<String> = contents.split("\n").map(|s: &str| s.to_string()).collect();
     Ok(lines)
-}
-
-pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
-    
-    let url = Url::parse(url_or_file);
-
-    let unl: Unl = if url.is_err() {
-        serde_json::from_str(&fs::read_to_string(url_or_file)?)?
-    } else {
-        reqwest::get(url_or_file).await?.json::<Unl>().await?
-    };
-    Ok(unl)
 }
 
 pub fn base58_to_hex(bae58_string: &str) -> String {
@@ -137,4 +109,40 @@ mod tests {
         let expected = "x".red().to_string();
         assert_eq!(result, expected);
     }
+}
+
+pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
+    for validator in validators.iter_mut() {
+        if let Some(validator_manifest) = &validator.decoded_manifest {
+            let payload = serialize_manifest_data(validator_manifest)?;
+
+            let manifest_master_validation = verify_signature(
+                &hex::encode(
+                    &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
+                )
+                .to_uppercase(),
+                &payload,
+                &validator_manifest.master_signature,
+            );
+
+            let manifest_signing_validation = verify_signature(
+                &hex::encode(
+                    &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
+                )
+                .to_uppercase(),
+                &payload,
+                &validator_manifest.signature,
+            );
+            
+            println!(
+                "Validator: {} ({}) | Master: {}, Signing: {} | {}",
+                &validator.validation_public_key,
+                hex_to_base58(&validator.validation_public_key)?,
+                get_tick_or_cross(manifest_master_validation),
+                get_tick_or_cross(manifest_signing_validation),
+                validator_manifest.clone().domain.unwrap_or("".to_string())
+            );
+        }
+    }
+    Ok(())
 }
