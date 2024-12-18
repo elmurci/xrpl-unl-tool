@@ -13,42 +13,68 @@ pub struct Cli {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Unl {
+pub struct Vl {
     pub public_key: String,
     pub manifest: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub decoded_manifest: Option<DecodedManifest>,
-    pub blob: String,
+    pub blob: Option<String>, // Only for v1
+    #[serde(alias = "blobs-v2", skip_serializing_if = "Option::is_none")]
+    pub blobs_v2: Option<Vec<BlobV2>>, // Only for v2
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub decoded_blob: Option<DecodedBlob>,
-    pub signature: String,
+    pub signature: Option<String>, // Only for v1
     pub version: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DecodedVl {
+    pub public_key: String,
+    pub manifest: DecodedManifest,
+    pub blob: Option<String>, // Only for v1
+    pub blobs_v2: Option<Vec<BlobV2>>, // Only for v2
+    pub decoded_blob: Option<DecodedBlob>, // Only for v1
+    pub decoded_blobs_v2: Option<Vec<BlobV2>>, // Only for v2
+    pub signature: Option<String>, // Only for v1
+    pub version: u8,
+    pub blob_verification: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DecodedBlob {
     pub sequence: u32,
     pub expiration: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective: Option<i64>,
     pub validators: Vec<Validator>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BlobV2 {
+    pub signature: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blob: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decoded_blob: Option<DecodedBlob>,
+    pub blob_verification: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Validator {
     pub validation_public_key: String,
-    pub manifest: String,
+    pub manifest: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decoded_manifest: Option<DecodedManifest>,
 }
 
-impl Default for Unl {
-    fn default() -> Unl {
-        Unl {
+impl Default for Vl {
+    fn default() -> Vl {
+        Vl {
             public_key: "".to_string(),
             manifest: "".to_string(),
-            decoded_manifest: None,
-            blob: "".to_string(),
-            decoded_blob: None,
-            signature: "".to_string(),
+            blob: None,
+            blobs_v2: None,
+            signature: None,
             version: 1,
         }
     }
@@ -62,6 +88,7 @@ pub struct DecodedManifest {
     pub signing_public_key: String,
     pub master_signature: String,
     pub domain: Option<String>,
+    pub verification: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

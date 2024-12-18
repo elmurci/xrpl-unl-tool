@@ -4,6 +4,61 @@ use crate::{
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 
+pub fn encode_manifest(
+    sequence: u32,
+    master_public_key: String,
+    signing_public_key: String,
+    signature: String,
+    master_signature: String,
+    domain: Option<String>,
+) -> Result<String> {
+    // Sequence: 0x24 | seq(4 bytes)
+    let mut seq_bytes = vec![0x24];
+    seq_bytes.extend_from_slice(&sequence.to_be_bytes());
+
+    // Master public key
+    let master_public_key_bytes = master_public_key.as_bytes();
+
+    // Signing public key
+    let signing_public_key_bytes = signing_public_key.as_bytes();
+
+    // Signature (hex -> bytes)
+    let signature_decoded = hex::decode(signature)?;
+    let mut signature_bytes = vec![0x76];
+    signature_bytes.push(signature_decoded.len() as u8);
+    signature_bytes.extend_from_slice(&signature_decoded);
+
+    // Domain (optional)
+    let domainbytes = if let Some(d) = domain {
+        let dbytes = d.as_bytes();
+        let mut db = vec![0x77];
+        db.push(dbytes.len() as u8);
+        db.extend_from_slice(dbytes);
+        db
+    } else {
+        vec![]
+    };
+
+    // Master signature (hex -> bytes)
+    let mastersig_decoded = hex::decode(master_signature)?;
+    // FieldID: 0x7012 (two bytes: 0x70, 0x12)
+    let mut msignaturebytes = vec![0x70, 0x12];
+    msignaturebytes.push(mastersig_decoded.len() as u8);
+    msignaturebytes.extend_from_slice(&mastersig_decoded);
+
+    // Concatenate all
+    let mut serialized_manifest = vec![];
+    serialized_manifest.extend_from_slice(&seq_bytes);
+    serialized_manifest.extend_from_slice(&master_public_key_bytes);
+    serialized_manifest.extend_from_slice(&signing_public_key_bytes);
+    serialized_manifest.extend_from_slice(&signature_bytes);
+    serialized_manifest.extend_from_slice(&domainbytes);
+    serialized_manifest.extend_from_slice(&msignaturebytes);
+
+    // Base64 encode the final data
+    Ok(BASE64_STANDARD.encode(serialized_manifest))
+}
+
 pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
     let manifest_bytes = BASE64_STANDARD.decode(manifest_blob)?;
 

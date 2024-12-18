@@ -1,14 +1,16 @@
 use clap::Subcommand;
 use anyhow::{anyhow, Result};
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Loads and verifies a given Validation List. It accepts a file path or a url. Example: `./xrpl-unl-tool load {url_or_file_path}`
+    /// Loads and verifies a given Validation List. It accepts a file path or a url. Example: `./xrpl-vl-tool load {url_or_file_path}`
     Load { arg: Option<String> },
-    /// Compares two Validation Lists. Example: `./xrpl-unl-tool compare {url_or_file_path_1} {url_or_file_path_2}`
-    Compare { arg: Option<Vec<String>> },
-    /// Prodces and signs a Validation List (connects to AWS to retrieve the keypair). Example: `./xrpl-unl-tool sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {aws_secret_name}`
+    /// Produces and signs a Validation List
     Sign { arg: Option<Vec<String>> },
+    /// Encodes a manifest
+    EncodeManifest { arg: Option<Vec<String>> },
+    /// Decodes a manifest
+    DecodeManifest { arg: Option<String> },
 }
 
 #[derive(Debug)]
@@ -78,7 +80,7 @@ impl ManifestField {
             0x76  => Ok(ManifestField::Signature),
             0x77  => Ok(ManifestField::Domain),
             0x7012  => Ok(ManifestField::MasterSignature),
-            _      => Err(anyhow!("Could not parse secret provider value")),
+            _      => Err(anyhow!("Could not parse manifest field")),
         }
     }
 }

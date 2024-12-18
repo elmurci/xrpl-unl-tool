@@ -1,7 +1,15 @@
 [package]
-name = "xrpl-unl-tool"
+name = "xrpl-vl-tool"
 version = "0.1.0"
 edition = "2021"
+
+[[bin]]
+name = "xrpl_vl_tool"
+path = "src/main.rs"
+
+[lib]
+name = "xrpl_vl_tool"
+path = "src/lib.rs"
 
 [dependencies]
 clap = { version="4.2", features=["derive"] }

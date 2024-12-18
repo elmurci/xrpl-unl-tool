@@ -1,29 +1,37 @@
-# XRP Ledger UNL Tool
+# XRP Ledger Validators List Tool
 
-Tool to validate, compare and sign UNL's.
+Tool to validate and sign Validators Lists.
 
 ## Description
 
-This tool allows you to `load`, `compare` (two) and `sign` UNL's.
+This tool allows you to `load` and `sign` VL's and `encode` and `decode` manifests.
+
+### Versions supported
+
+The tool supports both version 1 and 2 of the VL format.
+For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-Standards/tree/master/XLS-0045-prepublish-validator-lists).
 
 ### Load
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-tool load {url_or_path}`
+`./xrpl-vl-tool load {url_or_path}`
 
-And loads the given UNL performing validations on manifests.
+And loads the given VL performing some validations.
 
 #### Example
 
 *Example request:*
 
-`./xrpl-unl-tool load https://vl.xrplf.org` or `./xrpl-unl-tool load /dev/unl.json`
+`./xrpl-vl-tool load https://vl.xrplf.org` or `./xrpl-vl-tool load /dev/vl.json`
 
 *Example response:*
 
 ```
-There are 35 validators in this UNL. Sequence is: 80 | Manifest: ✓ | UNL: ✓ | Expires: 2025-10-31 00:00:00 
+There are 1 UNL's in this Validators List | Version 2 | Manifest Signature: ✓
+
+
+1) There are 35 validators in this VL. Sequence is: 81 | Blob Signature: x | Effective from: 2024-09-05 23:56:00 | Expires: 2025-12-04 22:53:42 
 
 Validator: ED13AAFCB6A87BCB5D093C2EF37F04431C291126D674293305152D9776C6ABA4D6 (nHBWa56Vr7csoFcCnEPzCCKVvnDQw3L28mATgHYQMGtbEfUjuYyB) | Master: ✓, Signing: ✓ | xrp.vet
 Validator: ED4246AA3AE9D29863944800CCA91829E4447498A20CD9C3973A6B59346C75AB95 (nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec) | Master: ✓, Signing: ✓ |  
@@ -60,44 +68,13 @@ Validator: ED9AE4F5887BA029EB7C0884486D23CF281975F773F44BD213054219882C411CC7 (n
 Validator: ED8651B672BCE2727BD93A62431592447D6637E5D0E768595ECC19E5E4AEACAF3B (nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd) | Master: ✓, Signing: ✓ | ripple.com
 Validator: ED75940EC09130F9C553D8AF0FE354A112CC27251472AF1A90917597489192135F (nHUED59jjpQ5QbNhesXMhqii9gA8UfbBmv3i5StgyxG98qjsT4yn) | Master: ✓, Signing: ✓ | arrington-xrp-capital.blockdaemon.com
 Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (nHUcNC5ni7XjVYfCMe38Rm3KQaq27jw7wJpcUYdo4miWwpNePRTw) | Master: ✓, Signing: ✓ | cabbit.tech
-
-UNL Signature ✓
-```
-
-### Compare
-
-The command compares two given UNLs:
-
-`./xrpl-unl-tool compare {url_or_file_path_1} {url_or_file_path_2}`
-
-#### Example
-
-*Example request:*
-
-`./xrpl-unl-tool compare https://vl.xrplf.org /dev/unl.json`
-
-*Example response:*
-
-```
- https://vl.xrpl.vision (33)
-+nHUUgpUVNxXfxkkoyh2QDjfLfHapcut8gYwKeShnJYd3SdPui19A peersyst.cloud
--nHUP4RcLQdPHh3kMtFm9NFGnjEYLGXiQAyyB7qFsjATHMw2YVxHi xpmarket.com
--nHUpJSKQTZdB1TDkbCREMuf8vEqFkk84BcvZDhsQsDufFDQVajam 
--nHDHzXZKtmMHCkTVgdWY4dqdigDrESiseUF8JkzE93DUtfbt6s3W validator.aspired.nz
-
- https://vl.xrplf.org (35)
-+nHUP4RcLQdPHh3kMtFm9NFGnjEYLGXiQAyyB7qFsjATHMw2YVxHi xpmarket.com
-+nHUpJSKQTZdB1TDkbCREMuf8vEqFkk84BcvZDhsQsDufFDQVajam 
-+nHDHzXZKtmMHCkTVgdWY4dqdigDrESiseUF8JkzE93DUtfbt6s3W validator.aspired.nz
--nHUUgpUVNxXfxkkoyh2QDjfLfHapcut8gYwKeShnJYd3SdPui19A peersyst.cloud
 ```
 
 ### Sign
 
-Signs a new UNL retrieving the secret from AWS.
+Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
-`./xrpl-unl-tool sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name}`
-
+`./xrpl-vl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
 
 #### AWS Secrets
 
@@ -108,7 +85,7 @@ In order to retrieve the secret from AWS, the following environment variables ne
 - `AWS_SESSION_TOKEN`
 - `AWS_SECRET_ACCESS`
 
-`secret_name` example: `test/unl/tool`.
+`secret_name` example: `test/vl/tool`.
 
 #### Vault Secrets
 
@@ -117,31 +94,47 @@ For Vault secrets, the following environment variables are required:
 - `VAULT_TOKEN`
 - `VAULT_ENDPOINT`
 
-The format for secret name is `{endpoint};{mount};{path}`.
+The format for secret name is `{mount}:{path}`.
 
-`secret_name` example: `unl-tool;dev;keypair`.
+`secret_name` example: `vl-tool/dev:keypair`.
 
 #### Example
 
 *Example request:*
 
-`./xrpl-unl-tool sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 aws test/unl/tool`
+`./xrpl-vl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifest_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 test/data/generated_vl_v2_2.json`
 
 *Example response:*
 
-`UNL file generated ✓` (a timestamped json file saved to the current folder)
+`VL file generated ✓` (a timestamped json file saved to the current folder)
 
 ## Validator List fields
+
+### Version 1
 
 - `blob`: Base64-encoded JSON string containing `sequence`, `validators` and `expiration` fields.
     - `sequence`: Validator list sequence (incremental)
     - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
         the list expires.
     - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
+- `manifest`: Base64-encoded serialization of a manifest containing the publisher's master and signing public keys.
+- `signature`: Hex-encoded signature of the blob using the publisher's signing key.
+- `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
+- `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
+
+### Version 2
+
+- `blobs-v2`: Base64-encoded JSON string containing `sequence`, `validators` and `expiration` fields.
+    - `manifest`: OPTIONAL string representing the base-64 or hex-encoded manifest containing the publisher's master and signing public keys.
+    - `signature`: string representing the hex-encoded signature of the blob using the publisher's signing key.
+    - `blob` string representing the base64-encoded json representation of the blob.
+      - `effective` : Unsigned integer representing the ripple time point when the list will become valid.
+      - `sequence`: Validator list sequence (incremental)
+      - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
+          the list expires.
+      - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
 - `manifest`: Base64-encoded serialization of a manifest containing the
         publisher's master and signing public keys.
-- `signature`: Hex-encoded signature of the blob using the publisher's
-        signing key.
 - `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
 - `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
 
@@ -168,3 +161,23 @@ Example:
   "domain": "xrpl.org"
 }
 ```
+
+### Encode (manifest)
+
+Encodes a manifest, example:
+
+```
+
+```
+
+### Decode (manifest)
+
+Decodes a manifest, example:
+
+```
+
+```
+
+### Tests
+
+`cargo tests`
